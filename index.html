@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Legacy Map</title>
+<style>
+  /* Dark is the default; viewer.js sets data-theme="light" or "dark" on <html> from the Theme setting. */
+  :root {
+    --bg: #0f1216;
+    --panel: rgba(18, 22, 28, 0.92);
+    --line: rgba(255, 255, 255, 0.08);
+    --text: #e6e9ee;
+    --muted: #8b94a3;
+    --accent: #6cb4ff;
+    --hover: rgba(255, 255, 255, 0.06);
+    --field: rgba(255, 255, 255, 0.05);
+    --sel: rgba(108, 180, 255, 0.18);
+    --label-bg: rgba(10, 12, 16, 0.75);
+    --label-text: #fff;
+    --label-poi: rgba(40, 70, 120, 0.85);
+    --label-size: 11px;
+  }
+  :root[data-theme="light"] {
+    --bg: #e9eef3;
+    --panel: rgba(250, 251, 253, 0.94);
+    --line: rgba(0, 0, 0, 0.1);
+    --text: #1b2028;
+    --muted: #5d6675;
+    --accent: #1f6fd1;
+    --hover: rgba(0, 0, 0, 0.05);
+    --field: rgba(0, 0, 0, 0.04);
+    --sel: rgba(31, 111, 209, 0.14);
+    --label-bg: rgba(255, 255, 255, 0.88);
+    --label-text: #1b2028;
+    --label-poi: rgba(214, 230, 252, 0.95);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+    font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  #view { position: fixed; inset: 0; width: 100%; height: 100%; }
+  #labels { position: fixed; inset: 0; pointer-events: none; }
+  .lbl { font-size: var(--label-size); padding: 1px 6px; border-radius: 4px; background: var(--label-bg);
+    color: var(--label-text); white-space: nowrap; transform: translateY(-18px); }
+  .lbl.poi { background: var(--label-poi); }
+  .lbl.click { pointer-events: auto; cursor: pointer; }
+  .lbl.sel { outline: 1px solid var(--accent); }
+
+  #panel { position: fixed; top: 12px; left: 12px; bottom: 12px; width: 300px; display: flex; flex-direction: column;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; backdrop-filter: blur(6px);
+    overflow-y: auto; }
+  #panel > * { flex: none; }
+  #panel header { padding: 14px 14px 8px; border-bottom: 1px solid var(--line); }
+  .titlebar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .icons { display: flex; gap: 4px; }
+  button.icon { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 6px;
+    border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
+  button.icon:hover { background: var(--hover); color: var(--text); }
+  dialog { width: min(440px, calc(100% - 32px)); padding: 14px 16px 16px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--panel); color: var(--text); backdrop-filter: blur(8px); }
+  dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+  dialog h2 { font-size: 15px; margin: 0; }
+  .dhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .dfoot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
+  .lead { margin: 0 0 10px; }
+  .sub { margin: 10px 0 0; color: var(--muted); }
+  table.keys { width: 100%; border-collapse: collapse; }
+  table.keys td { padding: 5px 0; border-top: 1px solid var(--line); vertical-align: top; }
+  table.keys td:first-child { white-space: nowrap; padding-right: 12px; }
+  kbd { display: inline-block; padding: 1px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
+    background: var(--field); font: 12px/1.4 ui-monospace, Consolas, monospace; }
+  #panel h1 { font-size: 15px; margin: 0 0 2px; letter-spacing: 0.2px; }
+  #stats { color: var(--muted); font-size: 12px; }
+  .sect { padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .sect h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
+  label.tog { display: flex; align-items: center; gap: 8px; padding: 2px 0; cursor: pointer; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line);
+    background: transparent; color: var(--text); font: inherit; font-size: 12px; cursor: pointer; }
+  .chip.off { opacity: 0.35; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--muted); flex: none; }
+  #search { width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--field);
+    color: var(--text); font: inherit; }
+  #info { position: fixed; top: 12px; right: 12px; width: 280px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px 14px; display: none; backdrop-filter: blur(6px); }
+  #info h3 { margin: 0 0 4px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  #info .row { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
+  #info .row span:first-child { color: var(--muted); }
+  #info .note { margin-top: 8px; padding: 6px 8px; border-radius: 6px; background: rgba(255, 179, 107, 0.12); color: #ffd2a6; font-size: 12px; }
+  #info .acts { display: flex; gap: 6px; margin-top: 8px; }
+  button.act { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--hover);
+    color: var(--text); font: inherit; cursor: pointer; }
+  /* The list scrolls on its own when the window is tall; on short windows the whole panel scrolls instead. */
+  #panel > #list { flex: 1 0 160px; overflow-y: auto; padding: 4px 6px 8px; }
+  .item { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+  .item:hover { background: var(--hover); }
+  .item.sel { background: var(--sel); }
+  .item small { margin-left: auto; color: var(--muted); font-size: 11px; }
+  .listhead { padding: 8px 8px 2px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  .setting { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; }
+  .setting > span { color: var(--muted); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { padding: 2px 8px; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 12px; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--sel); color: var(--accent); }
+  .hint { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  #loading { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; color: var(--muted); }
+  @media (max-width: 700px) {
+    #panel { width: auto; right: 12px; bottom: auto; max-height: 50vh; }
+    #info { top: auto; bottom: 56px; left: 12px; right: 12px; width: auto; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="labels"></div>
+
+<aside id="panel">
+  <header>
+    <div class="titlebar">
+      <h1>Legacy Map</h1>
+      <div class="icons">
+        <button class="icon" id="openHelp" title="Help" aria-label="Help">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>
+        </button>
+        <button class="icon" id="openSettings" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="stats">Loading…</div>
+  </header>
+  <div class="sect">
+    <h2>Layers</h2>
+    <label class="tog"><input type="checkbox" data-layer="props"> Props</label>
+    <label class="tog"><input type="checkbox" data-layer="decor"> Map decor</label>
+    <label class="tog"><input type="checkbox" data-layer="trialLabels" checked> Trial labels</label>
+    <label class="tog"><input type="checkbox" data-layer="pois" checked> Spawns, towers, secrets</label>
+  </div>
+  <div class="sect">
+    <h2>Difficulty</h2>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="sect"><input id="search" type="search" placeholder="Search trials and places…"></div>
+  <div id="list"></div>
+</aside>
+<div id="info"></div>
+
+<dialog id="settings">
+  <div class="dhead"><h2>Settings</h2><button class="icon close" data-close aria-label="Close">✕</button></div>
+    <div class="setting"><span>Theme</span><div class="seg" data-setting="theme">
+      <button data-v="light">Light</button><button data-v="dark">Dark</button><button data-v="system">System</button></div></div>
+    <div class="setting"><span>Draw distance</span><div class="seg" data-setting="distance">
+      <button data-v="near">Near</button><button data-v="normal">Normal</button><button data-v="far">Far</button></div></div>
+    <div class="setting"><span>Quality</span><div class="seg" data-setting="quality">
+      <button data-v="low">Low</button><button data-v="high">High</button></div></div>
+    <div class="setting"><span>Fog</span><div class="seg" data-setting="fog">
+      <button data-v="on">On</button><button data-v="off">Off</button></div></div>
+    <div class="setting"><span>Label size</span><div class="seg" data-setting="labels">
+      <button data-v="s">S</button><button data-v="m">M</button><button data-v="l">L</button></div></div>
+    <div class="hint" id="qualityHint" hidden>Antialiasing changes after a reload.</div>
+</dialog>
+
+<dialog id="help">
+  <div class="dhead"><h2>How to get around</h2><button class="icon close" data-close aria-label="Close">✕</button></div>
+  <p class="lead">The camera works like Roblox Studio's: you fly it around, and it turns in place.</p>
+  <table class="keys">
+    <tr><td><kbd>Right-drag</kbd></td><td>Look around</td></tr>
+    <tr><td><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></td><td>Fly forward, left, back, right (speeds up while held)</td></tr>
+    <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Down, up</td></tr>
+    <tr><td><kbd>Shift</kbd></td><td>Hold to move slowly</td></tr>
+    <tr><td><kbd>Scroll</kbd></td><td>Move toward or away from where the mouse points</td></tr>
+    <tr><td><kbd>Left-drag</kbd></td><td>Pan (middle-drag works too)</td></tr>
+    <tr><td><kbd>Alt</kbd> + <kbd>Left-drag</kbd></td><td>Orbit around the spot under the mouse</td></tr>
+    <tr><td><kbd>F</kbd></td><td>Fly to whatever is selected</td></tr>
+  </table>
+  <p class="sub">On a touchscreen: one finger pans, two fingers pinch to zoom and drag to look.</p>
+  <p class="sub">Pick a trial, spawn, tower or secret from the list (or click its label on the map) to fly there and see its details. Props and map decor load as you get close; turn them on under Layers.</p>
+  <div class="dfoot"><label class="tog"><input type="checkbox" id="helpOnStart"> Show this when the map opens</label>
+    <button class="act" data-close>Got it</button></div>
+</dialog>
+<div id="loading">Loading…</div>
+
+<script type="module" src="viewer.js?v=1792813877"></script>
+</body>
+</html>

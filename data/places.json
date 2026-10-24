@@ -1,0 +1,310 @@
+[
+ {
+  "name": "SPAWN",
+  "type": "Site",
+  "pos": [
+   17.6,
+   247,
+   -98.4
+  ],
+  "verified": true,
+  "region": "Spawn"
+ },
+ {
+  "name": "DOWNTOWN SITE",
+  "type": "Site",
+  "pos": [
+   -596.999,
+   198.2,
+   -464.5
+  ],
+  "verified": true,
+  "region": "Downtown"
+ },
+ {
+  "name": "HILTON SITE",
+  "type": "Site",
+  "pos": [
+   174,
+   169,
+   160.5
+  ],
+  "verified": true,
+  "region": "Spawn"
+ },
+ {
+  "name": "OFFICE SITE",
+  "type": "Site",
+  "pos": [
+   -1205.999,
+   209.4,
+   814.549
+  ],
+  "verified": true,
+  "region": "Office"
+ },
+ {
+  "name": "UPTOWN SITE",
+  "type": "Site",
+  "pos": [
+   -1137.203,
+   241.8,
+   -1764.963
+  ],
+  "verified": true,
+  "region": "Uptown"
+ },
+ {
+  "name": "VERTEX SITE",
+  "type": "Site",
+  "pos": [
+   1258.802,
+   360.804,
+   1025.549
+  ],
+  "verified": true,
+  "region": "Vertex"
+ },
+ {
+  "name": "PARK SITE",
+  "type": "Site",
+  "pos": [
+   2557.924,
+   168.404,
+   -1444.82
+  ],
+  "verified": true,
+  "region": "Arch"
+ },
+ {
+  "name": "CREST SITE",
+  "type": "Site",
+  "pos": [
+   380.802,
+   329.8,
+   -1291.451
+  ],
+  "verified": true,
+  "region": "Crest"
+ },
+ {
+  "name": "ARCH SITE",
+  "type": "Site",
+  "pos": [
+   2042.902,
+   221.894,
+   197.629
+  ],
+  "verified": true,
+  "region": "Arch"
+ },
+ {
+  "name": "TOWNSIDE SITE",
+  "type": "Site",
+  "pos": [
+   2433.1,
+   94.604,
+   1615.989
+  ],
+  "verified": true,
+  "region": "Townside"
+ },
+ {
+  "name": "HIGHRISE SITE",
+  "type": "Site",
+  "pos": [
+   116.239,
+   1029.822,
+   1961.133
+  ],
+  "verified": true,
+  "region": "Highrise"
+ },
+ {
+  "name": "TITAN",
+  "type": "Site",
+  "pos": [
+   1444,
+   1075.704,
+   1737.824
+  ],
+  "verified": true,
+  "region": "Highrise"
+ },
+ {
+  "name": "CHALLENGE TOWER",
+  "type": "Tower",
+  "pos": [
+   -473.811,
+   554.838,
+   600.431
+  ],
+  "verified": true,
+  "region": "Office"
+ },
+ {
+  "name": "ELITE TOWER",
+  "type": "Tower",
+  "pos": [
+   -420.921,
+   544.832,
+   -146.421
+  ],
+  "verified": true,
+  "region": "Downtown"
+ },
+ {
+  "name": "VERTIGO TOWER",
+  "type": "Tower",
+  "pos": [
+   -115,
+   744.225,
+   -257
+  ],
+  "verified": true,
+  "region": "Spawn"
+ },
+ {
+  "name": "APEX TOWER",
+  "type": "Tower",
+  "pos": [
+   365.501,
+   1084.084,
+   -2052.15
+  ],
+  "verified": true,
+  "region": "Crest"
+ },
+ {
+  "name": "VERTEX TOWER",
+  "type": "Tower",
+  "pos": [
+   719.318,
+   1256.004,
+   760.999
+  ],
+  "verified": true,
+  "region": "Vertex"
+ },
+ {
+  "name": "CREST TOWER",
+  "type": "Tower",
+  "pos": [
+   40.302,
+   1441.403,
+   -1228.953
+  ],
+  "verified": true,
+  "region": "Crest"
+ },
+ {
+  "name": "DEBUG TOWER",
+  "type": "Secret",
+  "pos": [
+   1117.552,
+   748.58,
+   383.978
+  ],
+  "verified": true,
+  "region": "Vertex"
+ },
+ {
+  "name": "OVERLORD'S REST (EVIL)",
+  "type": "Secret",
+  "pos": [
+   -390.72,
+   9.144,
+   2124.496
+  ],
+  "verified": true,
+  "region": "Highrise"
+ },
+ {
+  "name": "SAKURA TREE (SAKURA)",
+  "type": "Secret",
+  "pos": [
+   -551.924,
+   8.939,
+   -1606.104
+  ],
+  "verified": true,
+  "region": "Uptown"
+ },
+ {
+  "name": "ARKENTA'S RELIC (RUSTY)",
+  "type": "Secret",
+  "pos": [
+   2707.532,
+   -0.449,
+   -228.944
+  ],
+  "verified": true,
+  "region": "Arch"
+ },
+ {
+  "name": "SWORDSMANS PAST (EDGY)",
+  "type": "Secret",
+  "pos": [
+   2230.726,
+   764.914,
+   875.164
+  ],
+  "verified": true,
+  "region": "Townside"
+ },
+ {
+  "name": "PIONEERS PERISH (FURBALL)",
+  "type": "Secret",
+  "pos": [
+   -256.464,
+   25.771,
+   -421.688
+  ],
+  "verified": true,
+  "region": "Downtown"
+ },
+ {
+  "name": "MYSTERIOUS SHRINE (DEVOTEE)",
+  "type": "Secret",
+  "pos": [
+   1593.777,
+   3.05,
+   -1226.886
+  ],
+  "verified": true,
+  "region": "Arch"
+ },
+ {
+  "name": "BEQUEST FOR TECHNICALLY (TECHIE)",
+  "type": "Secret",
+  "pos": [
+   2594.891,
+   24.336,
+   -1687.726
+  ],
+  "verified": true,
+  "region": "Park"
+ },
+ {
+  "name": "RAINBOW EGG (EGG)",
+  "type": "Secret",
+  "pos": [
+   -438.701,
+   41.147,
+   241.477
+  ],
+  "verified": true,
+  "region": "Downtown"
+ },
+ {
+  "name": "GLASS EGG (GLASS)",
+  "type": "Secret",
+  "pos": [
+   -17.412,
+   294.898,
+   1238.988
+  ],
+  "verified": true,
+  "region": "Vertex"
+ }
+]

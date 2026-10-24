@@ -1,0 +1,22 @@
+{
+ "source": "ReplicatedStorage.TrialBeam and TrialTemplate.End (copied from the prototype's trial-visuals.json)",
+ "beam": {
+  "material": "Neon",
+  "offsetY": -0.5,
+  "size": [
+   2,
+   4999.998584389687,
+   2
+  ]
+ },
+ "finish": {
+  "color": "ff0000",
+  "material": "Neon",
+  "activeTransparency": 0.4,
+  "size": [
+   3,
+   5000,
+   3
+  ]
+ }
+}
