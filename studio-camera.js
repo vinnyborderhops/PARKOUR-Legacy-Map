@@ -22,6 +22,15 @@ const WHEEL_STEP = 0.12;        // fraction of the camera's height above the gro
 const WHEEL_MIN = 6, WHEEL_MAX = 500;
 const MIN_Y = 3;                // studs; never below the baseplate top
 const FALLBACK_DEPTH = 300;     // studs; for pan/orbit when nothing is under the cursor
+// Fly-to viewpoint search (see viewpoint()). Tried in order: full distance first, then closer.
+const VIEW_DISTANCES = [1, 0.6, 0.35, 0.15];
+const VIEW_MIN_DIST = 30;       // studs
+const VIEW_ELEVATIONS = [0.6, 0.9, 0.25, 1.25];             // radians above the horizon
+const VIEW_MIN_ELEV = 0.35, VIEW_MAX_ELEV = 1.3;
+const VIEW_YAWS = [0, 30, -30, 60, -60, 90, -90, 135, -135, 180]; // degrees from the current direction
+const VIEW_PROBES = [[0, 0.5, 0], [0, 4, 0], [3, 1.5, 0], [-3, 1.5, 0], [0, 1.5, 3], [0, 1.5, -3]]; // around the target
+const VIEW_GOOD = 0.8;          // fraction of probes that must see the camera
+const VIEW_BUDGET_MS = 120;     // stop searching and take the best spot so far
 
 // Keep receiving moves while dragging outside the canvas. Throws for pointers the browser isn't tracking
 // (e.g. synthetic events), which shouldn't break the drag itself.
@@ -253,16 +262,61 @@ export class StudioCamera {
   }
 
   // ---------- fly-to ----------
-  // Glide to look at `target` from `dist` studs away, keeping the current compass direction and at least
-  // a gentle downward angle.
+  // Glide to look at `target` from about `dist` studs away. The end spot is picked so the target is mostly
+  // visible: rays from a few points on and around the target must reach the camera without hitting map
+  // geometry. That also rules out ending inside a building (a ray from outside hits its wall first). Spots
+  // closest to the current view direction are tried first; free flying is unaffected and still passes walls.
   flyTo(target, dist = 320) {
-    const dir = this.camera.position.clone().sub(target).normalize();
-    if (dir.y < 0.35) { dir.y = 0.35; dir.normalize(); }
-    const toP = target.clone().add(dir.multiplyScalar(dist));
+    const toP = this.viewpoint(target, dist);
     const toQ = new THREE.Quaternion().setFromRotationMatrix(
       new THREE.Matrix4().lookAt(toP, target, new THREE.Vector3(0, 1, 0)));
     this.anim = { t0: performance.now(), dur: 900, fromP: this.camera.position.clone(), toP,
       fromQ: this.camera.quaternion.clone(), toQ };
+  }
+
+  viewpoint(target, dist) {
+    const surfaces = this.surfaces();
+    const base = this.camera.position.clone().sub(target);
+    const baseYaw = Math.atan2(base.x, base.z);
+    const baseElev = THREE.MathUtils.clamp(Math.asin(base.y / (base.length() || 1)), VIEW_MIN_ELEV, VIEW_MAX_ELEV);
+    let best = null, bestScore = -1;
+    const deadline = performance.now() + VIEW_BUDGET_MS;
+    for (const scale of VIEW_DISTANCES) {
+      const d = Math.max(VIEW_MIN_DIST, dist * scale);
+      for (const elev of [baseElev, ...VIEW_ELEVATIONS]) {
+        for (const yawOff of VIEW_YAWS) {
+          const yaw = baseYaw + THREE.MathUtils.degToRad(yawOff);
+          const dir = new THREE.Vector3(Math.sin(yaw) * Math.cos(elev), Math.sin(elev), Math.cos(yaw) * Math.cos(elev));
+          const p = target.clone().addScaledVector(dir, d);
+          if (p.y < MIN_Y) continue;
+          const seen = this.visibleFraction(p, target, surfaces, bestScore);
+          if (seen >= VIEW_GOOD) return p;
+          if (seen > bestScore) { bestScore = seen; best = p; }
+          if (performance.now() > deadline) return best; // hidden targets shouldn't freeze the click
+        }
+      }
+    }
+    // Nothing clears (e.g. a secret inside a closed room): straight above, else the least blocked spot tried.
+    const above = target.clone().add(new THREE.Vector3(0, dist, 0.01));
+    return this.visibleFraction(above, target, surfaces, bestScore) > bestScore ? above : best;
+  }
+
+  // Fraction of VIEW_PROBES with a clear line to p. Stops early (returning -1) once it can no longer beat
+  // `beat`, which is most of the cost saved when the target is hard to see.
+  visibleFraction(p, target, surfaces, beat = -1) {
+    let clear = 0, left = VIEW_PROBES.length;
+    for (const [x, y, z] of VIEW_PROBES) {
+      if ((clear + left) / VIEW_PROBES.length <= beat) return -1;
+      left--;
+      const q = new THREE.Vector3(target.x + x, target.y + y, target.z + z);
+      const dir = p.clone().sub(q);
+      const len = dir.length();
+      this.ray.set(q, dir.normalize());
+      this.ray.far = len;
+      const hit = this.ray.intersectObjects(surfaces, false)[0];
+      if (!hit || hit.distance > len - 0.5) clear++;
+    }
+    return clear / VIEW_PROBES.length;
   }
 
   // ---------- per frame ----------

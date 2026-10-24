@@ -2,7 +2,14 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { StudioCamera } from './studio-camera.js?v=1792813877';
+import { StudioCamera } from './studio-camera.js?v=1792814841';
+import { acceleratedRaycast, computeBoundsTree } from 'three-mesh-bvh';
+
+// Raycasts (fly-to line of sight, pan grab, clicks) hit big merged map batches; a BVH per geometry makes
+// each ray cheap instead of testing every triangle. Built per mesh as files load (see loadFile).
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
+const BVH_MIN_TRIANGLES = 500;
 
 // data/index.json (tools/build_regions.py) lists the ground file and every region's files with their layer.
 // The map layer always loads. Props and decor files load and show only while their toggle is on AND
@@ -202,7 +209,11 @@ async function loadFile(f) {
       if (o.material.userData?.class !== 'ff') pickable.push(o);
       // Map geometry is what the camera zooms and pans against, glass included so zoom stops at a glass wall;
       // decal/texture sheets and ForceField shells aren't.
-      if (f.meta.layer === 'map' && !/^(surface|decal)\|/.test(o.name) && o.material.userData?.class !== 'ff') surfaceMeshes.push(o);
+      if (f.meta.layer === 'map' && !/^(surface|decal)\|/.test(o.name) && o.material.userData?.class !== 'ff') {
+        if (!o.isInstancedMesh && o.geometry.index && o.geometry.index.count / 3 >= BVH_MIN_TRIANGLES) o.geometry.computeBoundsTree();
+        surfaceMeshes.push(o);
+        collisionDirty = true;
+      }
     });
     f.group.add(gltf.scene);
     f.state = 'loaded';
@@ -473,8 +484,47 @@ function select(item, fly) {
 // ---------- camera ----------
 // Roblox Studio-style free-fly camera (site/studio-camera.js). F focuses the selected trial or place.
 const surfaceMeshes = [];
+// Most map geometry is instanced, which a per-geometry BVH can't speed up, so for the camera's raycasts all
+// solid map geometry (about 110k triangles) is baked into one world-space mesh with a single BVH. It is
+// (re)built on demand once no files are loading; until then the meshes are raycast directly.
+let collision = null, collisionDirty = false;
+function cameraSurfaces() {
+  if (collisionDirty && !pending) {
+    collision = buildCollision(surfaceMeshes);
+    collisionDirty = false;
+  }
+  return collision && !collisionDirty ? [collision] : surfaceMeshes.filter(visibleUp);
+}
+function buildCollision(meshes) {
+  let tris = 0;
+  for (const m of meshes) tris += (m.geometry.index ? m.geometry.index.count / 3 : m.geometry.attributes.position.count / 3) * (m.isInstancedMesh ? m.count : 1);
+  const out = new Float32Array(tris * 9);
+  const v = new THREE.Vector3(), world = new THREE.Matrix4(), inst = new THREE.Matrix4();
+  let w = 0;
+  for (const m of meshes) {
+    m.updateWorldMatrix(true, false);
+    const pos = m.geometry.attributes.position, idx = m.geometry.index;
+    const n = idx ? idx.count : pos.count;
+    for (let i = 0; i < (m.isInstancedMesh ? m.count : 1); i++) {
+      if (m.isInstancedMesh) {
+        m.getMatrixAt(i, inst); // fills inst; returns nothing
+        world.multiplyMatrices(m.matrixWorld, inst);
+      } else world.copy(m.matrixWorld);
+      for (let j = 0; j < n; j++) {
+        v.fromBufferAttribute(pos, idx ? idx.getX(j) : j).applyMatrix4(world);
+        out[w++] = v.x; out[w++] = v.y; out[w++] = v.z;
+      }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(out, 3));
+  g.computeBoundsTree();
+  const mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial()); // never added to the scene; FrontSide like the map
+  mesh.updateMatrixWorld();
+  return mesh;
+}
 const cam = new StudioCamera(camera, canvas, {
-  surfaces: () => surfaceMeshes.filter(visibleUp),
+  surfaces: cameraSurfaces,
   onFocus: () => { if (state.selected) flyTo(state.selected.startV || state.selected.pos); },
 });
 function flyTo(target, dist = 320) { cam.flyTo(target, dist); }

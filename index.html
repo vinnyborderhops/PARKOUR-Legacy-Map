@@ -53,9 +53,11 @@
   #panel header { padding: 14px 14px 8px; border-bottom: 1px solid var(--line); }
   .titlebar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .icons { display: flex; gap: 4px; }
-  button.icon { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 6px;
+  .icon { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 6px;
     border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
-  button.icon:hover { background: var(--hover); color: var(--text); }
+  .icon:hover { background: var(--hover); color: var(--text); }
+  a.icon { text-decoration: none; }
+  dialog a { color: var(--accent); }
   dialog { width: min(440px, calc(100% - 32px)); padding: 14px 16px 16px; border: 1px solid var(--line); border-radius: 12px;
     background: var(--panel); color: var(--text); backdrop-filter: blur(8px); }
   dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
@@ -114,7 +116,8 @@
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+  "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.8.3/build/index.module.js"
 } }
 </script>
 </head>
@@ -127,6 +130,9 @@
     <div class="titlebar">
       <h1>Legacy Map</h1>
       <div class="icons">
+        <a class="icon" href="https://github.com/vinnyborderhops/PARKOUR-Legacy-Map" target="_blank" rel="noopener" title="View source code on GitHub" aria-label="View source code on GitHub">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 7-5 5 5 5"/><path d="m16 7 5 5-5 5"/><path d="m14 4-4 16"/></svg>
+        </a>
         <button class="icon" id="openHelp" title="Help" aria-label="Help">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>
         </button>
@@ -183,11 +189,12 @@
   </table>
   <p class="sub">On a touchscreen: one finger pans, two fingers pinch to zoom and drag to look.</p>
   <p class="sub">Pick a trial, spawn, tower or secret from the list (or click its label on the map) to fly there and see its details. Props and map decor load as you get close; turn them on under Layers.</p>
+  <p class="sub">This map is open source: <a href="https://github.com/vinnyborderhops/PARKOUR-Legacy-Map" target="_blank" rel="noopener">view the source code on GitHub</a>.</p>
   <div class="dfoot"><label class="tog"><input type="checkbox" id="helpOnStart"> Show this when the map opens</label>
     <button class="act" data-close>Got it</button></div>
 </dialog>
 <div id="loading">Loading…</div>
 
-<script type="module" src="viewer.js?v=1792813877"></script>
+<script type="module" src="viewer.js?v=1792814841"></script>
 </body>
 </html>
