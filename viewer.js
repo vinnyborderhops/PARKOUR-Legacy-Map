@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { StudioCamera } from './studio-camera.js?v=1792814841';
+import { StudioCamera } from './studio-camera.js?v=1792816307';
 import { acceleratedRaycast, computeBoundsTree } from 'three-mesh-bvh';
 
 // Raycasts (fly-to line of sight, pan grab, clicks) hit big merged map batches; a BVH per geometry makes
@@ -282,23 +282,28 @@ function buildTrials(list) {
 // The selected trial's markers, built like the game builds them:
 //   beam   ReplicatedStorage.TrialBeam at Start.Main + (0, -0.5, 0), coloured like Start.Arrow
 //   pillar ReplicatedStorage.TrialTemplate.End at Transparency 0.4 for the active trial
+//   end    a small ball on the exact finish point, so a finish in mid-air reads as mid-air
 //   route  a straight start-to-end line
-// Only the selected trial gets them, so nothing is drawn until a trial is picked.
+// In game both columns are CylinderMeshes offset by half their height (offset 2499.5 on a 5000-stud
+// mesh), so they rise from their part and don't extend below it; the columns here grow up from their
+// base the same way. Only the selected trial gets markers, so nothing is drawn until a trial is picked.
 function buildMarker(visuals) {
   const column = color => new THREE.Mesh(
-    new THREE.CylinderGeometry(0.5, 0.5, 1, 16, 1, true),
+    new THREE.CylinderGeometry(0.5, 0.5, 1, 16, 1, true).translate(0, 0.5, 0),
     new THREE.MeshBasicMaterial({ color, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
   const beam = column(0xffffff), pillar = column('#' + visuals.finish.color);
   pillar.material.opacity = 1 - visuals.finish.activeTransparency;
+  const end = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 12),
+    new THREE.MeshBasicMaterial({ color: '#' + visuals.finish.color }));
   const route = new THREE.Line(new THREE.BufferGeometry().setFromPoints([v3([0, 0, 0]), v3([0, 0, 0])]),
     new THREE.LineBasicMaterial({ transparent: true, opacity: 0.8 }));
-  for (const o of [beam, pillar, route]) {
+  for (const o of [beam, pillar, end, route]) {
     o.renderOrder = 2;
     o.frustumCulled = false;
     o.visible = false;
     scene.add(o);
   }
-  return { beam, pillar, route, visuals };
+  return { beam, pillar, end, route, visuals };
 }
 
 function buildPois(list) {
@@ -328,19 +333,22 @@ function writeMarkers() {
   pois.placeMesh.instanceMatrix.needsUpdate = true;
   pois.placeMesh.computeBoundingSphere();
 
-  const { beam, pillar, route, visuals } = marker;
+  const { beam, pillar, end, route, visuals } = marker;
   const t = state.selected?.kind === 'trial' ? state.selected : null;
-  beam.visible = pillar.visible = route.visible = !!t;
+  beam.visible = pillar.visible = end.visible = route.visible = !!t;
   if (!t) return;
   const [bw, bh] = visuals.beam.size, [ew, eh] = visuals.finish.size;
   beam.position.copy(t.startV).add(new THREE.Vector3(0, visuals.beam.offsetY, 0));
   beam.scale.set(bw * s, bh, bw * s);
-  pillar.position.copy(t.endV);
+  // End is 1 stud tall, so its base (where the game's column starts) is half a stud below its centre.
+  pillar.position.copy(t.endV).add(new THREE.Vector3(0, -0.5, 0));
   pillar.scale.set(ew * s, eh, ew * s);
+  end.position.copy(t.endV);
+  end.scale.setScalar(s);
   beam.material.color.set('#' + (t.arrowColor || DIFF_COLOR[t.difficulty].slice(1)));
   // Black and dark-red arrows would vanish as a thin line against the map, so draw those white.
   route.material.color.set(t.difficulty === 'Insane' || t.difficulty === 'Impossible' ? '#ffffff' : beam.material.color);
-  route.geometry.setFromPoints([t.startV.clone().setY(t.startV.y + 4), t.endV.clone().setY(t.endV.y + 4)]);
+  route.geometry.setFromPoints([t.startV.clone().setY(t.startV.y + 2), t.endV.clone()]);
 }
 
 // Same fade as StarterPack.TimeTrials for a completed trial, using the camera as the player:
